@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AppStep, Archetype, Profession, QuizState } from './types';
-import { GENERAL_QUESTIONS, PROFESSION_QUESTIONS } from './data';
+import { GENERAL_QUESTIONS, PROFESSION_QUESTIONS, PROFESSION_OVERVIEWS } from './data';
 import { getCareerInsights } from './services/geminiService';
 import { QuizCard } from './components/QuizCard';
 import { 
@@ -14,7 +14,10 @@ import {
   Briefcase,
   GraduationCap,
   Loader2,
-  CheckCircle2
+  CheckCircle2,
+  Scale,
+  Palette,
+  Heart
 } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -71,6 +74,13 @@ const App: React.FC = () => {
     setState(prev => ({
       ...prev,
       selectedProfession: prof,
+      step: AppStep.PROFESSION_OVERVIEW // Go to Overview instead of Quiz
+    }));
+  };
+
+  const startProfessionQuiz = () => {
+    setState(prev => ({
+      ...prev,
       step: AppStep.QUIZ_PROFESSION
     }));
     setCurrentQuestionIndex(0);
@@ -153,14 +163,20 @@ const App: React.FC = () => {
 
   const renderHome = () => (
     <div className="flex flex-col items-center justify-center min-h-[80vh] text-center max-w-4xl mx-auto px-6 fade-in">
-      <div className="bg-blue-50 p-4 rounded-full mb-8 animate-bounce">
-        <Sparkles className="w-8 h-8 text-blue-600" />
+      {/* Custom PATHIO Logo Image */}
+      <div className="mb-8 w-full max-w-2xl">
+        <img 
+          src="logo.png" 
+          alt="PATHIO - change the reality before the responsibility" 
+          className="w-full h-auto object-contain mx-auto max-h-[250px]"
+        />
       </div>
-      <h1 className="text-4xl md:text-6xl font-bold text-slate-900 mb-6 tracking-tight">
-        Discover Your <span className="text-blue-600">Real</span> Career Fit
+
+      <h1 className="text-2xl md:text-4xl font-bold text-slate-900 mb-6 tracking-tight">
+        Discover Your Real Career Fit
       </h1>
-      <p className="text-xl text-slate-600 mb-10 max-w-2xl leading-relaxed">
-        Careers are not a single bullet — uncover what truly matches your skills.
+      <p className="text-lg md:text-xl text-slate-600 mb-10 max-w-2xl leading-relaxed">
+        Unlock the path that truly matches your unique skills and potential.
       </p>
       
       <button 
@@ -174,42 +190,99 @@ const App: React.FC = () => {
       <div className="mt-20 border-t border-slate-200 pt-10">
         <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-4">About the Event</h3>
         <p className="text-slate-500 max-w-3xl mx-auto italic border-l-4 border-green-500 pl-6 py-2 bg-slate-50 rounded-r-lg text-left">
-          "Ideas talk, prototypes act. ShowCase provides a platform for students to turn ideas into functional creations like models, apps, or designs. Rooted in SDG 12: Responsible Consumption and Production, this event promotes sustainable, efficient, and responsible innovation."
+          "Ideas talk, prototypes act. SHOWCASE provides a platform for students to turn ideas into functional creations like models, apps, or designs. Rooted in SDG 12: Responsible Consumption and Production, this event promotes sustainable, efficient, and responsible innovation."
         </p>
       </div>
     </div>
   );
 
+  const getProfessionIcon = (prof: Profession) => {
+    switch(prof) {
+      case Profession.LAW: return Scale;
+      case Profession.PSYCHOLOGY: return Heart; // Using Heart as proxy for Psychology/Mind
+      case Profession.DESIGNING: return Palette;
+      default: return Briefcase;
+    }
+  };
+
   const renderProfessionSelection = () => (
     <div className="max-w-4xl mx-auto px-6 py-10 fade-in">
       <div className="text-center mb-12">
-        <span className="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold tracking-wide mb-3">STEP 2 of 3</span>
+        <span className="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold tracking-wide mb-3">STEP 2 of 4</span>
         <h2 className="text-3xl font-bold text-slate-900 mb-4">Which path interests you most?</h2>
-        <p className="text-slate-600">Select a profession to test your aptitude.</p>
+        <p className="text-slate-600">Select a path to explore its possibilities.</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {Object.values(Profession).map((prof) => (
-          <button
-            key={prof}
-            onClick={() => selectProfession(prof)}
-            className="flex flex-col items-center justify-center p-6 bg-white border-2 border-slate-100 rounded-2xl hover:border-blue-500 hover:shadow-lg transition-all duration-300 group h-40"
-          >
-            <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-4 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-              <Briefcase className="w-6 h-6" />
-            </div>
-            <span className="font-semibold text-slate-800 group-hover:text-blue-700 text-center">{prof}</span>
-          </button>
-        ))}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {Object.values(Profession).map((prof) => {
+          const Icon = getProfessionIcon(prof);
+          return (
+            <button
+              key={prof}
+              onClick={() => selectProfession(prof)}
+              className="flex flex-col items-center justify-center p-8 bg-white border-2 border-slate-100 rounded-2xl hover:border-blue-500 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group h-64"
+            >
+              <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-6 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                <Icon className="w-8 h-8" />
+              </div>
+              <span className="font-bold text-xl text-slate-800 group-hover:text-blue-700 text-center">{prof}</span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
+
+  const renderProfessionOverview = () => {
+    if (!state.selectedProfession) return null;
+    const info = PROFESSION_OVERVIEWS[state.selectedProfession];
+    const Icon = getProfessionIcon(state.selectedProfession);
+
+    return (
+      <div className="max-w-5xl mx-auto px-6 py-10 fade-in">
+        <div className="mb-8 text-center">
+          <span className="inline-block px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-bold tracking-wide mb-3">STEP 3 of 4</span>
+        </div>
+        
+        <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100">
+          <div className="bg-slate-900 p-10 md:p-14 text-white text-center">
+            <Icon className="w-20 h-20 mx-auto mb-6 text-blue-400" />
+            <h2 className="text-4xl md:text-5xl font-bold mb-6">The World of {state.selectedProfession}</h2>
+            <p className="text-lg md:text-xl text-slate-300 max-w-3xl mx-auto leading-relaxed">{info.description}</p>
+          </div>
+          
+          <div className="p-8 md:p-12">
+            <h3 className="text-2xl font-bold text-slate-800 mb-8 border-b border-slate-100 pb-4">Key Fields in this Path</h3>
+            <div className="grid md:grid-cols-2 gap-x-8 gap-y-4 mb-12">
+              {info.fields.map((field, idx) => (
+                <div key={idx} className="flex items-start gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100 transition-colors hover:bg-blue-50 hover:border-blue-100">
+                   <div className="w-2 h-2 mt-2 rounded-full bg-blue-500 flex-shrink-0"></div>
+                   <span className="font-medium text-slate-800 text-lg leading-tight">{field}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-blue-50 rounded-2xl p-8 text-center border border-blue-100">
+              <p className="text-slate-700 mb-6 font-medium text-lg">Ready to see where you fit within {state.selectedProfession}?</p>
+              <button 
+                onClick={startProfessionQuiz}
+                className="inline-flex items-center gap-3 bg-blue-600 hover:bg-blue-700 text-white text-lg font-bold py-4 px-12 rounded-full transition-all shadow-lg hover:shadow-blue-200 hover:-translate-y-1"
+              >
+                Take Aptitude Test
+                <ArrowRight className="w-6 h-6" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const renderLoading = () => (
     <div className="flex flex-col items-center justify-center min-h-[60vh] fade-in">
       <Loader2 className="w-16 h-16 text-blue-600 animate-spin mb-6" />
       <h2 className="text-2xl font-bold text-slate-800 mb-2">Analyzing Your Profile</h2>
-      <p className="text-slate-500">Connecting your skills with your ambition...</p>
+      <p className="text-slate-500">Finding the perfect niche for you...</p>
     </div>
   );
 
@@ -228,7 +301,7 @@ const App: React.FC = () => {
       <div className="max-w-5xl mx-auto px-6 py-8 fade-in pb-20">
         <div className="text-center mb-12">
            <h2 className="text-3xl font-bold text-slate-900">Your Career Profile</h2>
-           <p className="text-slate-600 mt-2">Here is how your natural skills align with your goals.</p>
+           <p className="text-slate-600 mt-2">Here is how your natural skills align with your choice.</p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-8 mb-12">
@@ -267,7 +340,7 @@ const App: React.FC = () => {
         {/* Section C: Suggestions */}
         <h3 className="text-2xl font-bold text-slate-800 mb-8 flex items-center gap-2">
           <Sparkles className="text-yellow-500" />
-          Recommended Roles for You
+          Recommended Careers in {state.selectedProfession}
         </h3>
         
         <div className="grid md:grid-cols-3 gap-6 mb-16">
@@ -277,7 +350,7 @@ const App: React.FC = () => {
                 <h4 className="text-xl font-bold text-slate-900 mb-2">{job.title}</h4>
                 <div className="w-10 h-1 bg-blue-500 rounded-full"></div>
               </div>
-              <p className="text-slate-600 text-sm mb-6 flex-grow">{job.description}</p>
+              <p className="text-slate-600 text-sm mb-6 flex-grow leading-relaxed">{job.description}</p>
               <div className="bg-green-50 p-4 rounded-xl border border-green-100 mt-auto">
                 <p className="text-green-800 text-xs font-bold uppercase tracking-wide mb-1 flex items-center gap-1">
                   <CheckCircle2 className="w-3 h-3" /> Why you fit
@@ -294,7 +367,7 @@ const App: React.FC = () => {
             className="bg-slate-800 hover:bg-slate-900 text-white font-semibold py-3 px-8 rounded-full transition-colors inline-flex items-center gap-2"
           >
             <RefreshCcw className="w-4 h-4" />
-            Retake Quizzes
+            Start Over
           </button>
         </div>
       </div>
@@ -306,8 +379,7 @@ const App: React.FC = () => {
       <nav className="bg-white border-b border-slate-200 sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">S</div>
-            <span className="font-bold text-lg tracking-tight">ShowCase</span>
+            {/* Logo removed from header as requested */}
           </div>
           {state.step !== AppStep.HOME && (
             <button onClick={resetApp} className="text-sm font-medium text-slate-500 hover:text-blue-600">
@@ -323,7 +395,7 @@ const App: React.FC = () => {
         {state.step === AppStep.QUIZ_GENERAL && (
           <div className="flex flex-col items-center px-4">
             <div className="mb-8 text-center">
-              <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold tracking-wide mb-3">STEP 1 of 3</span>
+              <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold tracking-wide mb-3">STEP 1 of 4</span>
               <h2 className="text-2xl font-bold text-slate-900">General Skills Assessment</h2>
             </div>
             <QuizCard 
@@ -337,10 +409,12 @@ const App: React.FC = () => {
 
         {state.step === AppStep.PROFESSION_SELECTION && renderProfessionSelection()}
         
+        {state.step === AppStep.PROFESSION_OVERVIEW && renderProfessionOverview()}
+        
         {state.step === AppStep.QUIZ_PROFESSION && (
           <div className="flex flex-col items-center px-4">
              <div className="mb-8 text-center">
-              <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold tracking-wide mb-3">STEP 3 of 3</span>
+              <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold tracking-wide mb-3">STEP 4 of 4</span>
               <h2 className="text-2xl font-bold text-slate-900">{state.selectedProfession} Aptitude</h2>
             </div>
             <QuizCard 

@@ -103,26 +103,62 @@ export const GENERAL_QUESTIONS: Question[] = [
   }
 ];
 
+export const PROFESSION_OVERVIEWS: Record<Profession, { description: string; fields: string[] }> = {
+  [Profession.LAW]: {
+    description: "Law in the modern era goes far beyond the courtroom arguments seen in movies. It is the structural framework of society, requiring high intellectual rigour, a command over language, and the ability to construct logical arguments. Whether you are interested in high-stakes corporate mergers, protecting intellectual property in the tech boom, or clearing the path for justice through the judiciary, this field offers immense power to drive change.",
+    fields: [
+      "Civil & Criminal Litigation",
+      "Corporate Law & Mergers (M&A)",
+      "Judicial Services (Magistracy)",
+      "Cyber Law & Data Privacy",
+      "Intellectual Property Rights (IPR)",
+      "Alternative Dispute Resolution (Arbitration)",
+      "Public Policy & Human Rights",
+      "Legal Journalism & Research"
+    ]
+  },
+  [Profession.PSYCHOLOGY]: {
+    description: "Psychology is one of the fastest-growing fields today as mental health awareness takes center stage globally. It is the scientific exploration of the human mind and behavior. This path is not limited to clinical therapy; it spans across corporate boardrooms, sports academies, and educational institutions. If you have emotional intelligence and an analytical mind, you can shape how organizations work and how individuals heal.",
+    fields: [
+      "Clinical Psychology",
+      "Counseling & Guidance (School/NGO)",
+      "Industrial-Organizational (Corporate HR)",
+      "Sports & Performance Psychology",
+      "Child Development & Special Education",
+      "Forensic & Criminal Psychology",
+      "Consumer Behavior & Marketing",
+      "Rehabilitation Psychology"
+    ]
+  },
+  [Profession.DESIGNING]: {
+    description: "Designing is the perfect blend of creativity and commerce. It is about problem-solving through aesthetics and functionality. As digital transformation accelerates and the demand for sustainable lifestyle products grows, designers are the architects of the user experience. From the clothes we wear to the apps we use and the spaces we live in, design is everywhere.",
+    fields: [
+      "Fashion & Textile Design",
+      "UI/UX Design (User Experience)",
+      "Graphic Design & Brand Identity",
+      "Interior & Spatial Architecture",
+      "Animation, VFX & Game Design",
+      "Product & Industrial Design",
+      "Jewelry & Accessory Design",
+      "Design Management & Strategy"
+    ]
+  }
+};
+
 export const PROFESSION_QUESTIONS: Record<Profession, Question[]> = {
-  [Profession.DOCTOR]: generateProfessionQuestions("Healthcare", "Medical Science"),
-  [Profession.ARCHITECT]: generateProfessionQuestions("Spatial Design", "Structural Planning"),
-  [Profession.ENGINEER]: generateProfessionQuestions("Technical Systems", "Problem Solving"),
-  [Profession.ENTREPRENEUR]: generateProfessionQuestions("Risk Taking", "Business Strategy"),
-  [Profession.FASHION_DESIGNER]: generateProfessionQuestions("Aesthetics", "Trend Analysis"),
-  [Profession.TEACHER]: generateProfessionQuestions("Instruction", "Patience"),
-  [Profession.SOFTWARE_DEVELOPER]: generateProfessionQuestions("Coding Logic", "System Architecture"),
-  [Profession.DIGITAL_MARKETER]: generateProfessionQuestions("Content Strategy", "Data Analytics"),
+  [Profession.LAW]: generateProfessionQuestions("Critical Analysis", "Persuasive Reasoning"),
+  [Profession.PSYCHOLOGY]: generateProfessionQuestions("Human Behavior Analysis", "Empathy"),
+  [Profession.DESIGNING]: generateProfessionQuestions("Visual Creativity", "User-Centric Problem Solving"),
 };
 
 function generateProfessionQuestions(skill1: string, skill2: string): Question[] {
-  // Helper to generate 10 questions efficiently for the demo
   const questions: Question[] = [];
   for (let i = 1; i <= 10; i++) {
     questions.push({
       id: i,
       text: i % 2 === 0 
-        ? `I enjoy tasks that involve deep ${skill1}.` 
-        : `I am comfortable dealing with complex challenges related to ${skill2}.`,
+        ? `I naturally enjoy tasks that involve deep ${skill1}.` 
+        : `I am comfortable handling complex challenges related to ${skill2}.`,
       options: [
         { label: "Strongly Agree", value: 10 },
         { label: "Agree", value: 7 },

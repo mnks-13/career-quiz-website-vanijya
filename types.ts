@@ -2,6 +2,7 @@ export enum AppStep {
   HOME,
   QUIZ_GENERAL,
   PROFESSION_SELECTION,
+  PROFESSION_OVERVIEW,
   QUIZ_PROFESSION,
   LOADING_RESULTS,
   RESULTS
@@ -24,14 +25,9 @@ export enum Archetype {
 }
 
 export enum Profession {
-  DOCTOR = "Doctor",
-  ARCHITECT = "Architect",
-  ENGINEER = "Engineer",
-  ENTREPRENEUR = "Entrepreneur",
-  FASHION_DESIGNER = "Fashion Designer",
-  TEACHER = "Teacher",
-  SOFTWARE_DEVELOPER = "Software Developer",
-  DIGITAL_MARKETER = "Digital Marketer"
+  LAW = "Law",
+  PSYCHOLOGY = "Psychology",
+  DESIGNING = "Designing"
 }
 
 export interface JobSuggestion {
