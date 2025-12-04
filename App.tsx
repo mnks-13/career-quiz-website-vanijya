@@ -166,7 +166,7 @@ const App: React.FC = () => {
       {/* Custom PATHIO Logo Image */}
       <div className="mb-8 w-full max-w-2xl">
         <img 
-          src="logo.png" 
+          src="/logo.png" 
           alt="PATHIO - change the reality before the responsibility" 
           className="w-full h-auto object-contain mx-auto max-h-[250px]"
         />
