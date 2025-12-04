@@ -39,6 +39,11 @@ const App: React.FC = () => {
 
   // --- Handlers ---
 
+  const navigateTo = (step: AppStep) => {
+    setState(prev => ({ ...prev, step }));
+    setCurrentQuestionIndex(0);
+  };
+
   const startQuiz = () => {
     setState(prev => ({ ...prev, step: AppStep.QUIZ_GENERAL }));
     setCurrentQuestionIndex(0);
@@ -74,7 +79,7 @@ const App: React.FC = () => {
     setState(prev => ({
       ...prev,
       selectedProfession: prof,
-      step: AppStep.PROFESSION_OVERVIEW // Go to Overview instead of Quiz
+      step: AppStep.PROFESSION_OVERVIEW
     }));
   };
 
@@ -130,7 +135,6 @@ const App: React.FC = () => {
     
     const fetchResults = async () => {
       if (state.step === AppStep.LOADING_RESULTS && state.selectedProfession && state.finalArchetype) {
-        // Calculate percentage: Max score is 100 (10 questions * 10 points max)
         const matchScore = Math.min(100, Math.round((state.professionScore / 100) * 100));
         
         try {
@@ -145,7 +149,6 @@ const App: React.FC = () => {
           }
         } catch (e) {
           console.error(e);
-          // Transition to results even on error (service handles fallback data)
           if (mounted) {
             setState(prev => ({ ...prev, step: AppStep.RESULTS }));
           }
@@ -161,45 +164,138 @@ const App: React.FC = () => {
 
   // --- Renderers ---
 
-  const renderHome = () => (
-    <div className="flex flex-col items-center justify-center min-h-[80vh] text-center max-w-4xl mx-auto px-6 fade-in">
-      {/* Custom PATHIO Logo Image */}
-      <div className="mb-8 w-full max-w-2xl">
-        <img 
-          src="/logo.png" 
-          alt="PATHIO - change the reality before the responsibility" 
-          className="w-full h-auto object-contain mx-auto max-h-[250px]"
-        />
-      </div>
+  const renderFooterCaption = () => (
+    <p className="text-slate-500 font-semibold italic text-lg tracking-wide text-center mt-12 mb-6">
+      PATHIO - Taste the Reality before Responsibility
+    </p>
+  );
 
-      <h1 className="text-2xl md:text-4xl font-bold text-slate-900 mb-6 tracking-tight">
+  const renderHome = () => (
+    <div className="flex flex-col items-center justify-center min-h-[70vh] text-center max-w-4xl mx-auto px-6 fade-in">
+      <h1 className="text-4xl md:text-6xl font-bold text-slate-900 mb-6 tracking-tight">
         Discover Your Real Career Fit
       </h1>
-      <p className="text-lg md:text-xl text-slate-600 mb-10 max-w-2xl leading-relaxed">
+      <p className="text-xl md:text-2xl text-slate-600 mb-12 max-w-2xl leading-relaxed">
         Unlock the path that truly matches your unique skills and potential.
       </p>
       
       <button 
         onClick={startQuiz}
-        className="group bg-blue-600 hover:bg-blue-700 text-white text-lg font-semibold py-4 px-10 rounded-full transition-all duration-300 shadow-lg hover:shadow-xl flex items-center gap-2"
+        className="group bg-blue-600 hover:bg-blue-700 text-white text-xl font-bold py-5 px-12 rounded-full transition-all duration-300 shadow-xl hover:shadow-2xl flex items-center gap-3 hover:-translate-y-1 mb-8"
       >
-        Start Quiz 1
-        <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+        Start Quiz
+        <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
       </button>
 
-      <div className="mt-20 border-t border-slate-200 pt-10">
-        <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-4">About the Event</h3>
-        <p className="text-slate-500 max-w-3xl mx-auto italic border-l-4 border-green-500 pl-6 py-2 bg-slate-50 rounded-r-lg text-left">
-          "Ideas talk, prototypes act. SHOWCASE provides a platform for students to turn ideas into functional creations like models, apps, or designs. Rooted in SDG 12: Responsible Consumption and Production, this event promotes sustainable, efficient, and responsible innovation."
+      {renderFooterCaption()}
+    </div>
+  );
+
+  const renderAbout = () => (
+    <div className="max-w-3xl mx-auto px-6 py-12 fade-in">
+      <h2 className="text-3xl font-bold text-slate-900 mb-8 border-b border-slate-200 pb-4">About Us</h2>
+      <div className="bg-white rounded-2xl shadow-sm p-8 border-l-8 border-green-500 mb-8">
+        <h3 className="text-xl font-bold text-slate-800 mb-4 uppercase tracking-wider">SHOWCASE</h3>
+        <p className="text-slate-600 text-lg leading-relaxed mb-6">
+          "Ideas talk, prototypes act. We provide a platform for students to turn ideas into functional creations like models, apps, or designs."
+        </p>
+        <p className="text-slate-600 text-lg leading-relaxed">
+          Rooted in <strong className="text-green-700">SDG 12: Responsible Consumption and Production</strong>, we promote sustainable, efficient, and responsible innovation.
         </p>
       </div>
+      {renderFooterCaption()}
+    </div>
+  );
+
+  const renderTeam = () => (
+    <div className="max-w-5xl mx-auto px-6 py-12 fade-in">
+      <h2 className="text-3xl font-bold text-slate-900 mb-10 text-center">Our Team</h2>
+      
+      <div className="grid md:grid-cols-2 gap-8 items-start">
+        {/* Showcase */}
+        <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+          <h3 className="text-xl font-bold text-blue-700 mb-4 border-b-2 border-slate-100 pb-3 uppercase tracking-wide">Showcase</h3>
+          <ul className="space-y-3">
+            <li className="flex items-center gap-3 text-slate-700 text-lg">
+              <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+              Mayank Sharma
+            </li>
+          </ul>
+        </div>
+
+        {/* PitchVerse */}
+        <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+          <h3 className="text-xl font-bold text-blue-700 mb-4 border-b-2 border-slate-100 pb-3 uppercase tracking-wide">PitchVerse</h3>
+          <ul className="space-y-3">
+            <li className="flex items-center gap-3 text-slate-700 text-lg">
+              <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+              Aanya Bhatnagar
+            </li>
+            <li className="flex items-center gap-3 text-slate-700 text-lg">
+              <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+              Aayushi Balsara
+            </li>
+            <li className="flex items-center gap-3 text-slate-700 text-lg">
+              <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+              Sneha Prajapati
+            </li>
+          </ul>
+        </div>
+
+        {/* InstaVista */}
+        <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+          <h3 className="text-xl font-bold text-blue-700 mb-4 border-b-2 border-slate-100 pb-3 uppercase tracking-wide">InstaVista</h3>
+          <ul className="space-y-3">
+            <li className="flex items-center gap-3 text-slate-700 text-lg">
+              <div className="w-2 h-2 bg-pink-400 rounded-full"></div>
+              Arun Kumar
+            </li>
+            <li className="flex items-center gap-3 text-slate-700 text-lg">
+              <div className="w-2 h-2 bg-pink-400 rounded-full"></div>
+              Advik Bhargwa
+            </li>
+          </ul>
+        </div>
+
+        {/* Market o drama */}
+        <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+          <h3 className="text-xl font-bold text-blue-700 mb-4 border-b-2 border-slate-100 pb-3 uppercase tracking-wide">Market o drama</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="flex items-center gap-3 text-slate-700 text-lg">
+              <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
+              Sharanya Sampath
+            </div>
+            <div className="flex items-center gap-3 text-slate-700 text-lg">
+              <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
+              Shobhin Malkoti
+            </div>
+            <div className="flex items-center gap-3 text-slate-700 text-lg">
+              <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
+              Prashasti Singh
+            </div>
+            <div className="flex items-center gap-3 text-slate-700 text-lg">
+              <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
+              Khyati
+            </div>
+            <div className="flex items-center gap-3 text-slate-700 text-lg">
+              <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
+              Riyaan Tongaria
+            </div>
+            <div className="flex items-center gap-3 text-slate-700 text-lg">
+              <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
+              Arpita Tripathi
+            </div>
+          </div>
+        </div>
+      </div>
+      {renderFooterCaption()}
     </div>
   );
 
   const getProfessionIcon = (prof: Profession) => {
     switch(prof) {
       case Profession.LAW: return Scale;
-      case Profession.PSYCHOLOGY: return Heart; // Using Heart as proxy for Psychology/Mind
+      case Profession.PSYCHOLOGY: return Heart;
       case Profession.DESIGNING: return Palette;
       default: return Briefcase;
     }
@@ -213,7 +309,7 @@ const App: React.FC = () => {
         <p className="text-slate-600">Select a path to explore its possibilities.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {Object.values(Profession).map((prof) => {
           const Icon = getProfessionIcon(prof);
           return (
@@ -230,6 +326,7 @@ const App: React.FC = () => {
           );
         })}
       </div>
+      {renderFooterCaption()}
     </div>
   );
 
@@ -244,7 +341,7 @@ const App: React.FC = () => {
           <span className="inline-block px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-bold tracking-wide mb-3">STEP 3 of 4</span>
         </div>
         
-        <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100">
+        <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100 mb-8">
           <div className="bg-slate-900 p-10 md:p-14 text-white text-center">
             <Icon className="w-20 h-20 mx-auto mb-6 text-blue-400" />
             <h2 className="text-4xl md:text-5xl font-bold mb-6">The World of {state.selectedProfession}</h2>
@@ -274,6 +371,7 @@ const App: React.FC = () => {
             </div>
           </div>
         </div>
+        {renderFooterCaption()}
       </div>
     );
   };
@@ -282,7 +380,8 @@ const App: React.FC = () => {
     <div className="flex flex-col items-center justify-center min-h-[60vh] fade-in">
       <Loader2 className="w-16 h-16 text-blue-600 animate-spin mb-6" />
       <h2 className="text-2xl font-bold text-slate-800 mb-2">Analyzing Your Profile</h2>
-      <p className="text-slate-500">Finding the perfect niche for you...</p>
+      <p className="text-slate-500 mb-8">Finding the perfect niche for you...</p>
+      {renderFooterCaption()}
     </div>
   );
 
@@ -361,7 +460,7 @@ const App: React.FC = () => {
           ))}
         </div>
 
-        <div className="text-center">
+        <div className="text-center mb-12">
           <button 
             onClick={resetApp}
             className="bg-slate-800 hover:bg-slate-900 text-white font-semibold py-3 px-8 rounded-full transition-colors inline-flex items-center gap-2"
@@ -370,27 +469,54 @@ const App: React.FC = () => {
             Start Over
           </button>
         </div>
+        {renderFooterCaption()}
       </div>
     );
   };
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-blue-100 selection:text-blue-900">
-      <nav className="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {/* Logo removed from header as requested */}
+      {/* Ribbon Header */}
+      <nav className="bg-blue-700 sticky top-0 z-10 shadow-md">
+        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+          <div 
+            className="flex items-center cursor-pointer hover:opacity-90 transition-opacity" 
+            onClick={() => navigateTo(AppStep.HOME)}
+          >
+            <img 
+              src="/logo.png" 
+              alt="PATHIO - change the reality before the responsibility" 
+              className="h-12 w-auto object-contain"
+            />
           </div>
-          {state.step !== AppStep.HOME && (
-            <button onClick={resetApp} className="text-sm font-medium text-slate-500 hover:text-blue-600">
-              Exit
+          
+          <div className="hidden md:flex items-center gap-8">
+            <button 
+              onClick={() => navigateTo(AppStep.HOME)}
+              className={`text-white font-medium hover:text-blue-200 transition-colors ${state.step === AppStep.HOME ? 'border-b-2 border-white' : ''}`}
+            >
+              Home
             </button>
-          )}
+            <button 
+              onClick={() => navigateTo(AppStep.ABOUT)}
+              className={`text-white font-medium hover:text-blue-200 transition-colors ${state.step === AppStep.ABOUT ? 'border-b-2 border-white' : ''}`}
+            >
+              About
+            </button>
+            <button 
+              onClick={() => navigateTo(AppStep.TEAM)}
+              className={`text-white font-medium hover:text-blue-200 transition-colors ${state.step === AppStep.TEAM ? 'border-b-2 border-white' : ''}`}
+            >
+              Team
+            </button>
+          </div>
         </div>
       </nav>
 
-      <main className="flex-grow pt-8 pb-12">
+      <main className="flex-grow pt-12 pb-12">
         {state.step === AppStep.HOME && renderHome()}
+        {state.step === AppStep.ABOUT && renderAbout()}
+        {state.step === AppStep.TEAM && renderTeam()}
         
         {state.step === AppStep.QUIZ_GENERAL && (
           <div className="flex flex-col items-center px-4">
@@ -404,6 +530,7 @@ const App: React.FC = () => {
               currentNumber={currentQuestionIndex + 1}
               total={GENERAL_QUESTIONS.length}
             />
+            {renderFooterCaption()}
           </div>
         )}
 
@@ -423,6 +550,7 @@ const App: React.FC = () => {
               currentNumber={currentQuestionIndex + 1}
               total={PROFESSION_QUESTIONS[state.selectedProfession!].length}
             />
+            {renderFooterCaption()}
           </div>
         )}
 

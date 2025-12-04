@@ -1,5 +1,8 @@
+
 export enum AppStep {
   HOME,
+  ABOUT,
+  TEAM,
   QUIZ_GENERAL,
   PROFESSION_SELECTION,
   PROFESSION_OVERVIEW,
