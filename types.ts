@@ -1,14 +1,13 @@
 
+
 export enum AppStep {
   HOME,
   ABOUT,
   TEAM,
+  USER_DETAILS,
   QUIZ_GENERAL,
   PROFESSION_SELECTION,
-  PROFESSION_OVERVIEW,
   QUIZ_PROFESSION,
-  LOADING_RESULTS,
-  RESULTS
 }
 
 export interface Question {
@@ -33,17 +32,52 @@ export enum Profession {
   DESIGNING = "Designing"
 }
 
+export interface DetailedProfile {
+  title: string;
+  summary: string; // 1-2 sentences
+  description: string; // Short paragraph
+  keySkills: string[]; // 5-7 bullets
+  personalityFit: string[]; // 3-5 bullets
+  pathway: string; // Clear steps, newlines
+  salary: string; // Exact format
+  growth: string[]; // 4-6 bullets
+  fitReason: string; // Short friendly paragraph
+}
+
 export interface JobSuggestion {
   title: string;
+  summary: string;
   description: string;
+  keySkills: string[];
+  personalityFit: string[];
+  pathway: string;
+  salary: string;
+  growth: string[];
   fitReason: string;
+}
+
+export interface UserDetails {
+  name: string;
+  email: string;
+  standard: string;
+  stream?: string;
 }
 
 export interface QuizState {
   step: AppStep;
-  generalAnswers: Record<string, number>; // Map archetype to count
+  // Store answers by index to allow going back. 
+  // General: array of Archetype strings. Profession: array of scores.
+  generalAnswers: (Archetype | null)[]; 
+  professionAnswers: (number | null)[];
+  
+  userDetails: UserDetails | null;
+
   selectedProfession: Profession | null;
-  professionScore: number;
   finalArchetype: Archetype | null;
-  jobSuggestions: JobSuggestion[];
+  
+  // Store aptitude scores (0-100) for each profession
+  aptitudeScores: Record<Profession, number | null>;
+  
+  // Store history of answers for professions [score, score, ...]
+  professionHistory: Record<string, (number | null)[]>;
 }
