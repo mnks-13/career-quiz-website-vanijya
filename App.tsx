@@ -1,6 +1,7 @@
 
+
 import React, { useState, useEffect } from 'react';
-import { AppStep, Archetype, Profession, QuizState, DetailedProfile, UserDetails } from './types';
+import { AppStep, Archetype, Profession, QuizState, DetailedProfile, UserDetails, CareerInsights } from './types';
 import { GENERAL_QUESTIONS, PROFESSION_QUESTIONS, DETAILED_PROFILES } from './data';
 import { QuizCard } from './components/QuizCard';
 import { 
@@ -31,7 +32,10 @@ import {
   Menu,
   X,
   Map,
-  Search
+  Search,
+  ClipboardList,
+  Send,
+  Lock
 } from 'lucide-react';
 import { getCareerInsights } from './services/geminiService';
 
@@ -64,10 +68,10 @@ const App: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   // New state for Gemini-generated suggestions
-  const [jobSuggestions, setJobSuggestions] = useState<Record<Profession, any[]>>({
-    [Profession.LAW]: [],
-    [Profession.PSYCHOLOGY]: [],
-    [Profession.DESIGNING]: []
+  const [jobSuggestions, setJobSuggestions] = useState<Record<Profession, CareerInsights | null>>({
+    [Profession.LAW]: null,
+    [Profession.PSYCHOLOGY]: null,
+    [Profession.DESIGNING]: null
   });
   const [isLoadingInsights, setIsLoadingInsights] = useState(false);
   const [expandedJobIndex, setExpandedJobIndex] = useState<number | null>(null);
@@ -195,7 +199,7 @@ const App: React.FC = () => {
       const updatedState = {
         ...state,
         professionAnswers: [],
-        step: AppStep.PROFESSION_SELECTION,
+        step: AppStep.TASK_PAGE, // Navigate to Task Page
         aptitudeScores: {
           ...state.aptitudeScores,
           [state.selectedProfession!]: matchPercentage
@@ -213,10 +217,10 @@ const App: React.FC = () => {
       setIsLoadingInsights(true);
       try {
         const archetype = state.finalArchetype || Archetype.CREATIVE; // Fallback if skipped
-        const suggestions = await getCareerInsights(archetype, state.selectedProfession!, matchPercentage);
+        const insights = await getCareerInsights(archetype, state.selectedProfession!, matchPercentage);
         setJobSuggestions(prev => ({
           ...prev,
-          [state.selectedProfession!]: suggestions
+          [state.selectedProfession!]: insights
         }));
       } catch (error) {
         console.error("Failed to fetch insights", error);
@@ -258,9 +262,9 @@ const App: React.FC = () => {
     setCurrentQuestionIndex(0);
     setShowHistory(false);
     setJobSuggestions({
-      [Profession.LAW]: [],
-      [Profession.PSYCHOLOGY]: [],
-      [Profession.DESIGNING]: []
+      [Profession.LAW]: null,
+      [Profession.PSYCHOLOGY]: null,
+      [Profession.DESIGNING]: null
     });
     setExpandedJobIndex(null);
     window.scrollTo(0, 0);
@@ -712,7 +716,8 @@ const App: React.FC = () => {
 
         {/* Profession Quiz Answers - Dynamically rendered based on history */}
         {Object.entries(state.professionHistory).map(([prof, answers]) => {
-          if (!answers || answers.length === 0) return null;
+          const answerList = answers as (number | null)[];
+          if (!answerList || answerList.length === 0) return null;
           const questions = PROFESSION_QUESTIONS[prof as Profession];
           
           return (
@@ -725,7 +730,7 @@ const App: React.FC = () => {
               </div>
               <div className="divide-y divide-slate-100">
                 {questions.map((q, idx) => {
-                  const score = answers[idx];
+                  const score = answerList[idx];
                   let label = "Skipped";
                   if (score === 10) label = "Strongly Agree";
                   else if (score === 7) label = "Agree";
@@ -750,6 +755,90 @@ const App: React.FC = () => {
     );
   };
 
+  const renderTaskPage = () => {
+    const prof = state.selectedProfession;
+    if (!prof) return null;
+    const insights = jobSuggestions[prof];
+    const tasks = insights?.simulatedTasks || [];
+
+    return (
+      <div className="max-w-4xl mx-auto px-4 md:px-6 py-12 fade-in">
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center justify-center p-3 bg-orange-50 rounded-full mb-4 ring-1 ring-orange-200">
+            <ClipboardList className="w-8 h-8 text-orange-600" />
+          </div>
+          <h2 className="text-3xl font-extrabold text-slate-900 mb-3">
+            Workspace Simulation Tasks — <span className="text-blue-600">{prof}</span>
+          </h2>
+          <p className="text-slate-600 max-w-2xl mx-auto">
+            Experience what it feels like to work in this field with these short, real-world scenarios.
+          </p>
+        </div>
+
+        {isLoadingInsights && !insights ? (
+           <div className="text-center py-20 bg-white rounded-3xl shadow-sm border border-slate-100">
+              <div className="animate-spin w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-6"></div>
+              <h3 className="text-xl font-bold text-slate-800 mb-2">Generating Your Tasks...</h3>
+              <p className="text-slate-500">Our AI is designing custom workplace scenarios for you.</p>
+           </div>
+        ) : (
+          <div className="space-y-8">
+            <div className="bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden">
+               <div className="p-8 space-y-8">
+                 {tasks.map((task, idx) => (
+                   <div key={idx} className="relative">
+                      <div className="flex gap-4">
+                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-orange-100 text-orange-600 font-bold flex items-center justify-center text-sm border border-orange-200">
+                          {idx + 1}
+                        </div>
+                        <div className="flex-grow space-y-3">
+                           <p className="text-lg font-medium text-slate-800 leading-relaxed">
+                             {task}
+                           </p>
+                           <textarea 
+                             className="w-full p-4 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all outline-none resize-none text-slate-700"
+                             rows={3}
+                             placeholder="Type your response here (for your own practice)..."
+                           />
+                        </div>
+                      </div>
+                      {idx < tasks.length - 1 && <div className="h-px bg-slate-100 w-full ml-12 mt-8"></div>}
+                   </div>
+                 ))}
+               </div>
+
+               <div className="bg-slate-50 p-8 border-t border-slate-100 flex flex-col items-center gap-6">
+                  <button className="bg-slate-900 text-white font-bold py-4 px-12 rounded-full shadow-lg hover:bg-blue-600 hover:shadow-xl transition-all flex items-center gap-2 transform hover:-translate-y-1">
+                    Submit My Responses
+                    <Send className="w-4 h-4" />
+                  </button>
+
+                  <div className="flex flex-col items-center gap-2">
+                     <button className="text-slate-400 font-bold py-2 px-6 rounded-full border-2 border-slate-200 cursor-not-allowed flex items-center gap-2" disabled>
+                       <Lock className="w-4 h-4" />
+                       Get Review From Experts
+                     </button>
+                     <span className="text-xs font-medium text-slate-400 bg-slate-100 px-3 py-1 rounded-full">
+                       This is a premium feature. Expert review coming soon.
+                     </span>
+                  </div>
+               </div>
+            </div>
+
+            <div className="flex justify-center">
+              <button 
+                onClick={() => navigateTo(AppStep.PROFESSION_SELECTION)}
+                className="text-slate-500 hover:text-slate-800 font-bold flex items-center gap-2 transition-colors py-2 px-4 hover:bg-slate-100 rounded-lg"
+              >
+                View Full Career Report <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderProfessionSelection = () => (
     <div className="max-w-7xl mx-auto px-4 md:px-6 py-12 fade-in">
       <div className="text-center mb-12">
@@ -767,8 +856,9 @@ const App: React.FC = () => {
           const hasScore = score !== null;
           const ProfileIcon = getProfessionIcon(prof);
           const profileData = DETAILED_PROFILES[prof];
-          const suggestions = jobSuggestions[prof] || [];
-
+          const insights = jobSuggestions[prof];
+          const jobs = insights?.jobs || [];
+          
           return (
             <div key={prof} className="flex flex-col h-full bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden hover:shadow-xl transition-all duration-300">
               <div className="p-8 pb-0">
@@ -811,40 +901,55 @@ const App: React.FC = () => {
               {/* Suggestions / Details Area */}
               <div className="flex-grow bg-slate-50 border-t border-slate-100 p-6">
                  {hasScore ? (
-                  isLoadingInsights && !suggestions.length ? (
+                  isLoadingInsights && !insights ? (
                     <div className="text-center py-8">
                        <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-                       <p className="text-slate-500 text-sm font-medium">AI is analyzing your profile...</p>
+                       <p className="text-slate-500 text-sm font-medium">AI is generating insights...</p>
                     </div>
-                  ) : suggestions.length > 0 ? (
-                    <div className="space-y-4">
-                      <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-2">
-                        <Sparkles className="w-4 h-4 text-yellow-500" />
-                        AI Career Matches
-                      </h4>
-                      {suggestions.map((job: any, idx: number) => (
-                        <div key={idx} className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 cursor-pointer hover:border-blue-300 transition-all"
-                             onClick={() => setExpandedJobIndex(expandedJobIndex === idx ? null : idx)}>
-                          <div className="flex justify-between items-start">
-                             <h5 className="font-bold text-slate-800 text-sm">{job.title}</h5>
-                             {expandedJobIndex === idx ? <ChevronUp className="w-4 h-4 text-slate-400"/> : <ChevronDown className="w-4 h-4 text-slate-400"/>}
-                          </div>
-                          
-                          {expandedJobIndex === idx && (
-                            <div className="mt-3 text-xs text-slate-600 space-y-2 border-t border-slate-100 pt-2 animate-fadeIn">
-                               <p className="italic text-slate-500">{job.summary}</p>
-                               <div className="bg-blue-50 p-2 rounded text-blue-800">
-                                 <strong>Salary:</strong>
-                                 <pre className="whitespace-pre-wrap font-sans mt-1">{job.salary}</pre>
-                               </div>
-                               <div>
-                                 <strong>Pathway:</strong>
-                                 <p className="mt-1">{job.pathway}</p>
-                               </div>
+                  ) : insights ? (
+                    <div className="space-y-6">
+                      
+                      {/* Job Matches Section */}
+                      <div className="space-y-4">
+                        <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-yellow-500" />
+                          AI Career Matches
+                        </h4>
+                        {jobs.map((job: any, idx: number) => (
+                          <div key={idx} className="bg-white rounded-xl p-4 shadow-sm border border-slate-200 cursor-pointer hover:border-blue-300 transition-all"
+                               onClick={() => setExpandedJobIndex(expandedJobIndex === idx ? null : idx)}>
+                            <div className="flex justify-between items-start">
+                               <h5 className="font-bold text-slate-800 text-sm">{job.title}</h5>
+                               {expandedJobIndex === idx ? <ChevronUp className="w-4 h-4 text-slate-400"/> : <ChevronDown className="w-4 h-4 text-slate-400"/>}
                             </div>
-                          )}
-                        </div>
-                      ))}
+                            
+                            {expandedJobIndex === idx && (
+                              <div className="mt-3 text-xs text-slate-600 space-y-2 border-t border-slate-100 pt-2 animate-fadeIn">
+                                 <p className="italic text-slate-500">{job.summary}</p>
+                                 <div className="bg-blue-50 p-2 rounded text-blue-800">
+                                   <strong>Salary:</strong>
+                                   <pre className="whitespace-pre-wrap font-sans mt-1">{job.salary}</pre>
+                                 </div>
+                                 <div>
+                                   <strong>Pathway:</strong>
+                                   <p className="mt-1">{job.pathway}</p>
+                                 </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="pt-2">
+                        <button 
+                          onClick={() => setState(prev => ({...prev, step: AppStep.TASK_PAGE, selectedProfession: prof}))}
+                          className="w-full py-2 bg-orange-50 text-orange-700 font-bold rounded-lg border border-orange-200 hover:bg-orange-100 transition-colors text-sm flex items-center justify-center gap-2"
+                        >
+                          <ClipboardList className="w-4 h-4" />
+                          View Practice Tasks
+                        </button>
+                      </div>
+
                     </div>
                   ) : (
                     <div className="text-center py-4 text-slate-500 text-sm">
@@ -1037,6 +1142,8 @@ const App: React.FC = () => {
         )}
 
         {state.step === AppStep.PROFESSION_SELECTION && renderProfessionSelection()}
+
+        {state.step === AppStep.TASK_PAGE && renderTaskPage()}
 
         {state.step === AppStep.QUIZ_PROFESSION && state.selectedProfession && (
            <div className="flex flex-col items-center justify-center min-h-[80vh] px-4 py-12">

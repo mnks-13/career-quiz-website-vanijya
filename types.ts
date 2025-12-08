@@ -8,6 +8,7 @@ export enum AppStep {
   QUIZ_GENERAL,
   PROFESSION_SELECTION,
   QUIZ_PROFESSION,
+  TASK_PAGE,
 }
 
 export interface Question {
@@ -54,6 +55,11 @@ export interface JobSuggestion {
   salary: string;
   growth: string[];
   fitReason: string;
+}
+
+export interface CareerInsights {
+  jobs: JobSuggestion[];
+  simulatedTasks: string[];
 }
 
 export interface UserDetails {
