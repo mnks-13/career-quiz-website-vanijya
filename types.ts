@@ -69,6 +69,11 @@ export interface UserDetails {
   stream?: string;
 }
 
+export interface TaskResponse {
+  text: string;
+  fileName?: string;
+}
+
 export interface QuizState {
   step: AppStep;
   // Store answers by index to allow going back. 
@@ -86,4 +91,7 @@ export interface QuizState {
   
   // Store history of answers for professions [score, score, ...]
   professionHistory: Record<string, (number | null)[]>;
+
+  // Store user responses to simulated tasks
+  taskResponses: Record<string, TaskResponse[]>;
 }

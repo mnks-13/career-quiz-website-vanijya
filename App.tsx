@@ -1,7 +1,7 @@
 
 
 import React, { useState, useEffect } from 'react';
-import { AppStep, Archetype, Profession, QuizState, DetailedProfile, UserDetails, CareerInsights } from './types';
+import { AppStep, Archetype, Profession, QuizState, DetailedProfile, UserDetails, CareerInsights, TaskResponse } from './types';
 import { GENERAL_QUESTIONS, PROFESSION_QUESTIONS, DETAILED_PROFILES } from './data';
 import { QuizCard } from './components/QuizCard';
 import { 
@@ -35,7 +35,9 @@ import {
   Search,
   ClipboardList,
   Send,
-  Lock
+  Lock,
+  Upload,
+  Image as ImageIcon
 } from 'lucide-react';
 import { getCareerInsights } from './services/geminiService';
 
@@ -52,7 +54,8 @@ const App: React.FC = () => {
       [Profession.PSYCHOLOGY]: null,
       [Profession.DESIGNING]: null,
     },
-    professionHistory: {}
+    professionHistory: {},
+    taskResponses: {}
   });
 
   // Local state for the User Details form
@@ -256,7 +259,8 @@ const App: React.FC = () => {
         [Profession.PSYCHOLOGY]: null,
         [Profession.DESIGNING]: null,
       },
-      professionHistory: {}
+      professionHistory: {},
+      taskResponses: {}
     });
     setUserDetailsForm({ name: '', email: '', standard: '', stream: '' });
     setCurrentQuestionIndex(0);
@@ -268,6 +272,50 @@ const App: React.FC = () => {
     });
     setExpandedJobIndex(null);
     window.scrollTo(0, 0);
+  };
+
+  // --- Handlers for Task Responses ---
+  const handleTaskTextChange = (taskIndex: number, text: string) => {
+    const prof = state.selectedProfession;
+    if (!prof) return;
+
+    const currentResponses = [...(state.taskResponses[prof] || [])];
+    // Ensure the array is big enough
+    while (currentResponses.length <= taskIndex) {
+      currentResponses.push({ text: "" });
+    }
+    
+    currentResponses[taskIndex] = { ...currentResponses[taskIndex], text };
+
+    setState(prev => ({
+      ...prev,
+      taskResponses: {
+        ...prev.taskResponses,
+        [prof]: currentResponses
+      }
+    }));
+  };
+
+  const handleTaskFileChange = (taskIndex: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const prof = state.selectedProfession;
+    const file = e.target.files?.[0];
+    if (!prof || !file) return;
+
+    const currentResponses = [...(state.taskResponses[prof] || [])];
+    while (currentResponses.length <= taskIndex) {
+      currentResponses.push({ text: "" });
+    }
+
+    // We store just the name for display since we don't have a backend
+    currentResponses[taskIndex] = { ...currentResponses[taskIndex], fileName: file.name };
+
+    setState(prev => ({
+      ...prev,
+      taskResponses: {
+        ...prev.taskResponses,
+        [prof]: currentResponses
+      }
+    }));
   };
 
   // --- Renderers ---
@@ -751,6 +799,55 @@ const App: React.FC = () => {
             </div>
           );
         })}
+
+        {/* Task Responses Section */}
+        {Object.entries(state.taskResponses).map(([prof, tasks]) => {
+          if (!tasks || tasks.length === 0) return null;
+          
+          return (
+            <div key={`${prof}-tasks`} className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden mb-8">
+              <div className="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                <h4 className="font-bold text-slate-800">{prof} Simulation Tasks</h4>
+                <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded font-bold">
+                   Completed
+                </span>
+              </div>
+              <div className="divide-y divide-slate-100">
+                {tasks.map((taskResponse, idx) => {
+                  if (!taskResponse) return null;
+                  
+                  // Retrieve the original task text if possible, or just number
+                  const originalTaskText = jobSuggestions[prof as Profession]?.simulatedTasks[idx] || `Task ${idx + 1}`;
+
+                  return (
+                    <div key={idx} className="p-6 hover:bg-slate-50 transition-colors">
+                       <p className="text-sm font-bold text-slate-600 mb-2">Task: {originalTaskText}</p>
+                       
+                       {taskResponse.text && (
+                         <div className="mb-3">
+                           <p className="text-xs text-slate-400 uppercase tracking-wide mb-1">Your Text Response:</p>
+                           <p className="text-slate-800 bg-slate-50 p-3 rounded-lg border border-slate-200">{taskResponse.text}</p>
+                         </div>
+                       )}
+
+                       {taskResponse.fileName && (
+                          <div className="flex items-center gap-2 text-blue-600 bg-blue-50 p-2 rounded-lg border border-blue-100 w-fit">
+                            <ImageIcon className="w-4 h-4" />
+                            <span className="text-sm font-medium">Uploaded File: {taskResponse.fileName}</span>
+                          </div>
+                       )}
+
+                       {!taskResponse.text && !taskResponse.fileName && (
+                         <p className="text-sm text-slate-400 italic">No response provided.</p>
+                       )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+
       </div>
     );
   };
@@ -760,6 +857,7 @@ const App: React.FC = () => {
     if (!prof) return null;
     const insights = jobSuggestions[prof];
     const tasks = insights?.simulatedTasks || [];
+    const currentResponses = state.taskResponses[prof] || [];
 
     return (
       <div className="max-w-4xl mx-auto px-4 md:px-6 py-12 fade-in">
@@ -785,30 +883,67 @@ const App: React.FC = () => {
           <div className="space-y-8">
             <div className="bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden">
                <div className="p-8 space-y-8">
-                 {tasks.map((task, idx) => (
-                   <div key={idx} className="relative">
-                      <div className="flex gap-4">
-                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-orange-100 text-orange-600 font-bold flex items-center justify-center text-sm border border-orange-200">
-                          {idx + 1}
+                 {tasks.map((task, idx) => {
+                   const isDesignTask = task.toLowerCase().includes('sketch') || 
+                                        task.toLowerCase().includes('draw') || 
+                                        task.toLowerCase().includes('design') ||
+                                        task.toLowerCase().includes('create') ||
+                                        task.toLowerCase().includes('upload');
+
+                   return (
+                     <div key={idx} className="relative">
+                        <div className="flex gap-4">
+                          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-orange-100 text-orange-600 font-bold flex items-center justify-center text-sm border border-orange-200">
+                            {idx + 1}
+                          </div>
+                          <div className="flex-grow space-y-4">
+                             <p className="text-lg font-medium text-slate-800 leading-relaxed">
+                               {task}
+                             </p>
+                             
+                             <textarea 
+                               className="w-full p-4 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all outline-none resize-none text-slate-700"
+                               rows={3}
+                               placeholder="Type your response here..."
+                               value={currentResponses[idx]?.text || ""}
+                               onChange={(e) => handleTaskTextChange(idx, e.target.value)}
+                             />
+
+                             {isDesignTask && (
+                               <div className="flex items-center gap-4">
+                                  <label className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors font-medium text-sm">
+                                    <Upload className="w-4 h-4" />
+                                    {currentResponses[idx]?.fileName ? 'Change File' : 'Upload Sketch/Design'}
+                                    <input 
+                                      type="file" 
+                                      className="hidden" 
+                                      accept="image/*,.pdf"
+                                      onChange={(e) => handleTaskFileChange(idx, e)}
+                                    />
+                                  </label>
+                                  {currentResponses[idx]?.fileName && (
+                                    <span className="text-sm text-blue-600 flex items-center gap-1">
+                                      <CheckCircle2 className="w-4 h-4" /> {currentResponses[idx].fileName}
+                                    </span>
+                                  )}
+                               </div>
+                             )}
+                          </div>
                         </div>
-                        <div className="flex-grow space-y-3">
-                           <p className="text-lg font-medium text-slate-800 leading-relaxed">
-                             {task}
-                           </p>
-                           <textarea 
-                             className="w-full p-4 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all outline-none resize-none text-slate-700"
-                             rows={3}
-                             placeholder="Type your response here (for your own practice)..."
-                           />
-                        </div>
-                      </div>
-                      {idx < tasks.length - 1 && <div className="h-px bg-slate-100 w-full ml-12 mt-8"></div>}
-                   </div>
-                 ))}
+                        {idx < tasks.length - 1 && <div className="h-px bg-slate-100 w-full ml-12 mt-8"></div>}
+                     </div>
+                   );
+                 })}
                </div>
 
                <div className="bg-slate-50 p-8 border-t border-slate-100 flex flex-col items-center gap-6">
-                  <button className="bg-slate-900 text-white font-bold py-4 px-12 rounded-full shadow-lg hover:bg-blue-600 hover:shadow-xl transition-all flex items-center gap-2 transform hover:-translate-y-1">
+                  <button 
+                    onClick={() => {
+                      alert("Tasks submitted successfully! Check your full report for details.");
+                      navigateTo(AppStep.PROFESSION_SELECTION);
+                    }}
+                    className="bg-slate-900 text-white font-bold py-4 px-12 rounded-full shadow-lg hover:bg-blue-600 hover:shadow-xl transition-all flex items-center gap-2 transform hover:-translate-y-1"
+                  >
                     Submit My Responses
                     <Send className="w-4 h-4" />
                   </button>
@@ -819,7 +954,7 @@ const App: React.FC = () => {
                        Get Review From Experts
                      </button>
                      <span className="text-xs font-medium text-slate-400 bg-slate-100 px-3 py-1 rounded-full">
-                       This is a premium feature. Expert review coming soon.
+                       This is a premium feature.
                      </span>
                   </div>
                </div>
