@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect } from 'react';
 import { AppStep, Archetype, Profession, QuizState, DetailedProfile, UserDetails, CareerInsights, TaskResponse } from './types';
 import { GENERAL_QUESTIONS, PROFESSION_QUESTIONS, DETAILED_PROFILES } from './data';
@@ -37,7 +35,8 @@ import {
   Send,
   Lock,
   Upload,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Rocket
 } from 'lucide-react';
 import { getCareerInsights } from './services/geminiService';
 
@@ -689,6 +688,46 @@ const App: React.FC = () => {
     </div>
   );
 
+  const renderVocational = () => (
+    <div className="flex flex-col items-center justify-center min-h-[70vh] px-4 md:px-6 py-12 fade-in w-full">
+      <div className="text-center mb-10">
+        <h2 className="text-3xl md:text-5xl font-extrabold text-slate-900 mb-4 leading-tight">
+          Vocational Courses & Internships
+        </h2>
+        <p className="text-lg md:text-xl text-slate-600 max-w-2xl mx-auto">
+          Explore hands-on opportunities to grow your skills.
+        </p>
+      </div>
+
+      <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-10 md:p-16 text-center max-w-3xl w-full relative overflow-hidden">
+        {/* Decorative Background */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-orange-50 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-50 rounded-full blur-3xl opacity-50 translate-y-1/2 -translate-x-1/2 pointer-events-none"></div>
+
+        <div className="relative z-10 flex flex-col items-center">
+          <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6 border border-slate-100">
+             <Rocket className="w-10 h-10 text-slate-900" />
+          </div>
+          
+          <h3 className="text-2xl md:text-3xl font-bold text-slate-800 mb-6">
+            We Are Adding New Opportunities Soon.
+          </h3>
+          
+          <p className="text-slate-600 mb-10 max-w-lg text-lg mx-auto">
+            Our team is curating practical courses, internships, and skill-building programs for you.
+          </p>
+          
+          <button 
+            className="bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 px-8 rounded-full shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1 outline-none"
+            onClick={() => {}} 
+          >
+            Notify Me When Available
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   const getProfessionIcon = (prof: Profession) => {
     switch(prof) {
       case Profession.LAW: return Scale;
@@ -801,7 +840,8 @@ const App: React.FC = () => {
         })}
 
         {/* Task Responses Section */}
-        {Object.entries(state.taskResponses).map(([prof, tasks]) => {
+        {Object.entries(state.taskResponses).map(([prof, tasksVal]) => {
+          const tasks = tasksVal as TaskResponse[];
           if (!tasks || tasks.length === 0) return null;
           
           return (
@@ -1148,6 +1188,11 @@ const App: React.FC = () => {
                   <ArrowRight className="w-3 h-3" /> Our Team
                 </button>
               </li>
+              <li>
+                <button onClick={() => navigateTo(AppStep.VOCATIONAL)} className="hover:text-white hover:translate-x-1 transition-all flex items-center gap-2">
+                  <ArrowRight className="w-3 h-3" /> Vocational Courses
+                </button>
+              </li>
             </ul>
           </div>
 
@@ -1216,6 +1261,7 @@ const App: React.FC = () => {
             <button onClick={() => navigateTo(AppStep.HOME)} className={`text-sm font-bold uppercase tracking-wider transition-colors hover:text-white ${state.step === AppStep.HOME ? 'text-white' : 'text-blue-200'}`}>Home</button>
             <button onClick={() => navigateTo(AppStep.ABOUT)} className={`text-sm font-bold uppercase tracking-wider transition-colors hover:text-white ${state.step === AppStep.ABOUT ? 'text-white' : 'text-blue-200'}`}>About</button>
             <button onClick={() => navigateTo(AppStep.TEAM)} className={`text-sm font-bold uppercase tracking-wider transition-colors hover:text-white ${state.step === AppStep.TEAM ? 'text-white' : 'text-blue-200'}`}>Team</button>
+            <button onClick={() => navigateTo(AppStep.VOCATIONAL)} className={`text-sm font-bold uppercase tracking-wider transition-colors hover:text-white ${state.step === AppStep.VOCATIONAL ? 'text-white' : 'text-blue-200'}`}>Vocational</button>
             {state.userDetails && (
               <div className="flex items-center gap-3 pl-4 border-l border-blue-400">
                 <div className="w-8 h-8 rounded-full bg-blue-200 flex items-center justify-center text-blue-900 font-bold border border-blue-300">
@@ -1240,6 +1286,7 @@ const App: React.FC = () => {
             <button onClick={() => navigateTo(AppStep.HOME)} className="p-4 text-left font-bold text-slate-700 hover:bg-slate-50 rounded-lg">Home</button>
             <button onClick={() => navigateTo(AppStep.ABOUT)} className="p-4 text-left font-bold text-slate-700 hover:bg-slate-50 rounded-lg">About</button>
             <button onClick={() => navigateTo(AppStep.TEAM)} className="p-4 text-left font-bold text-slate-700 hover:bg-slate-50 rounded-lg">Team</button>
+            <button onClick={() => navigateTo(AppStep.VOCATIONAL)} className="p-4 text-left font-bold text-slate-700 hover:bg-slate-50 rounded-lg">Vocational</button>
              {state.userDetails && (
                <button onClick={resetApp} className="p-4 text-left font-bold text-red-500 hover:bg-red-50 rounded-lg border-t border-slate-100 mt-2">Restart App</button>
              )}
@@ -1252,6 +1299,7 @@ const App: React.FC = () => {
         {state.step === AppStep.HOME && renderHome()}
         {state.step === AppStep.ABOUT && renderAbout()}
         {state.step === AppStep.TEAM && renderTeam()}
+        {state.step === AppStep.VOCATIONAL && renderVocational()}
         
         {state.step === AppStep.USER_DETAILS && renderUserDetails()}
 

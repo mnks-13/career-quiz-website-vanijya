@@ -1,5 +1,3 @@
-
-
 export enum AppStep {
   HOME,
   ABOUT,
@@ -9,6 +7,7 @@ export enum AppStep {
   PROFESSION_SELECTION,
   QUIZ_PROFESSION,
   TASK_PAGE,
+  VOCATIONAL,
 }
 
 export interface Question {
