@@ -1,5 +1,4 @@
 
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { Archetype, Profession, CareerInsights } from "../types";
 
@@ -234,5 +233,57 @@ export const getCareerInsights = async (
     };
 
     return fallbacks[profession] || fallbacks["Designing"];
+  }
+};
+
+export const evaluateTaskResponses = async (
+  profession: string,
+  qaPairs: { question: string; answer: string }[]
+): Promise<string[]> => {
+  const model = "gemini-2.5-flash";
+  
+  // If no text answers, return empty feedback
+  if (qaPairs.length === 0) return [];
+
+  const prompt = `
+    Context: A student is simulating tasks for the profession: ${profession}.
+    They have provided answers to the following tasks.
+    
+    Please provide a ONE-LINE constructive and encouraging feedback for each answer.
+    If the answer is very short or generic, encourage them to go deeper.
+    If the answer is good, praise a specific aspect.
+    Keep the tone professional yet friendly (mentor-like).
+    
+    Tasks and Answers:
+    ${JSON.stringify(qaPairs)}
+
+    Response Format:
+    Return a JSON object with a key "feedbacks" containing an array of strings. 
+    The order must match the input array.
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model,
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            feedbacks: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING }
+            }
+          }
+        }
+      }
+    });
+
+    const json = JSON.parse(response.text || "{}");
+    return json.feedbacks || Array(qaPairs.length).fill("Good effort! Keep exploring.");
+  } catch (e) {
+    console.error("Gemini API Error:", e);
+    return Array(qaPairs.length).fill("Thanks for submitting! Good attempt.");
   }
 };

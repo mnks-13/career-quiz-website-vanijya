@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { AppStep, Archetype, Profession, QuizState, DetailedProfile, UserDetails, CareerInsights, TaskResponse } from './types';
 import { GENERAL_QUESTIONS, PROFESSION_QUESTIONS, DETAILED_PROFILES } from './data';
@@ -36,9 +37,11 @@ import {
   Lock,
   Upload,
   Image as ImageIcon,
-  Rocket
+  Rocket,
+  Star,
+  MessageSquare
 } from 'lucide-react';
-import { getCareerInsights } from './services/geminiService';
+import { getCareerInsights, evaluateTaskResponses } from './services/geminiService';
 
 const App: React.FC = () => {
   const [state, setState] = useState<QuizState>({
@@ -77,6 +80,14 @@ const App: React.FC = () => {
   });
   const [isLoadingInsights, setIsLoadingInsights] = useState(false);
   const [expandedJobIndex, setExpandedJobIndex] = useState<number | null>(null);
+
+  // Task Submission State
+  const [isSubmittingTasks, setIsSubmittingTasks] = useState(false);
+
+  // Feedback State
+  const [feedbackRating, setFeedbackRating] = useState<number>(0);
+  const [feedbackText, setFeedbackText] = useState<string>("");
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState<boolean>(false);
 
   // --- Handlers ---
 
@@ -270,6 +281,9 @@ const App: React.FC = () => {
       [Profession.DESIGNING]: null
     });
     setExpandedJobIndex(null);
+    setFeedbackRating(0);
+    setFeedbackText("");
+    setFeedbackSubmitted(false);
     window.scrollTo(0, 0);
   };
 
@@ -315,6 +329,65 @@ const App: React.FC = () => {
         [prof]: currentResponses
       }
     }));
+  };
+
+  const handleTaskSubmit = async () => {
+    const prof = state.selectedProfession;
+    if (!prof) return;
+
+    setIsSubmittingTasks(true);
+
+    const currentTasks = jobSuggestions[prof]?.simulatedTasks || [];
+    const userResponses = state.taskResponses[prof] || [];
+
+    // Collect QA pairs for evaluation
+    const indicesToEvaluate: number[] = [];
+    const pairsToEvaluate: {question: string, answer: string}[] = [];
+
+    currentTasks.forEach((task, idx) => {
+      const resp = userResponses[idx];
+      if (resp && resp.text && resp.text.trim().length > 0) {
+        indicesToEvaluate.push(idx);
+        pairsToEvaluate.push({ question: task, answer: resp.text });
+      }
+    });
+
+    if (pairsToEvaluate.length > 0) {
+      try {
+        const feedbacks = await evaluateTaskResponses(prof, pairsToEvaluate);
+        
+        // Update state with feedbacks
+        const newResponses = [...(state.taskResponses[prof] || [])];
+        while (newResponses.length < currentTasks.length) {
+          newResponses.push({ text: "" });
+        }
+
+        indicesToEvaluate.forEach((originalIdx, arrayIdx) => {
+          if (newResponses[originalIdx]) {
+            newResponses[originalIdx] = {
+              ...newResponses[originalIdx],
+              feedback: feedbacks[arrayIdx]
+            };
+          }
+        });
+
+        setState(prev => ({
+          ...prev,
+          taskResponses: {
+            ...prev.taskResponses,
+            [prof]: newResponses
+          }
+        }));
+
+      } catch (e) {
+        console.error("Error generating feedback", e);
+      }
+    }
+
+    setIsSubmittingTasks(false);
+    setShowHistory(true); // Ensure history is visible so they see their feedback
+    navigateTo(AppStep.PROFESSION_SELECTION);
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
   };
 
   // --- Renderers ---
@@ -870,6 +943,16 @@ const App: React.FC = () => {
                          </div>
                        )}
 
+                       {taskResponse.feedback && (
+                         <div className="mb-3 bg-green-50 border border-green-100 p-3 rounded-lg flex items-start gap-3">
+                            <div className="mt-0.5 min-w-[20px]"><Lightbulb className="w-5 h-5 text-green-600" /></div>
+                            <div>
+                              <p className="text-xs font-bold text-green-700 uppercase mb-1">Expert Feedback</p>
+                              <p className="text-sm text-green-800 leading-relaxed">{taskResponse.feedback}</p>
+                            </div>
+                         </div>
+                       )}
+
                        {taskResponse.fileName && (
                           <div className="flex items-center gap-2 text-blue-600 bg-blue-50 p-2 rounded-lg border border-blue-100 w-fit">
                             <ImageIcon className="w-4 h-4" />
@@ -887,6 +970,23 @@ const App: React.FC = () => {
             </div>
           );
         })}
+
+        {/* User Feedback Section */}
+        {feedbackSubmitted && (
+          <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden mb-8">
+            <div className="bg-yellow-50 px-6 py-4 border-b border-yellow-100 flex justify-between items-center">
+              <h4 className="font-bold text-slate-800">Your Experience Feedback</h4>
+              <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <Star key={s} className={`w-4 h-4 ${s <= feedbackRating ? 'fill-yellow-500 text-yellow-500' : 'text-slate-300'}`} />
+                ))}
+              </div>
+            </div>
+            <div className="p-6">
+              <p className="text-slate-700 italic">"{feedbackText || "No additional comments provided."}"</p>
+            </div>
+          </div>
+        )}
 
       </div>
     );
@@ -977,16 +1077,20 @@ const App: React.FC = () => {
                </div>
 
                <div className="bg-slate-50 p-8 border-t border-slate-100 flex flex-col items-center gap-6">
-                  <button 
-                    onClick={() => {
-                      alert("Tasks submitted successfully! Check your full report for details.");
-                      navigateTo(AppStep.PROFESSION_SELECTION);
-                    }}
-                    className="bg-slate-900 text-white font-bold py-4 px-12 rounded-full shadow-lg hover:bg-blue-600 hover:shadow-xl transition-all flex items-center gap-2 transform hover:-translate-y-1"
-                  >
-                    Submit My Responses
-                    <Send className="w-4 h-4" />
-                  </button>
+                  {isSubmittingTasks ? (
+                     <div className="flex flex-col items-center gap-3">
+                        <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                        <p className="text-slate-600 font-medium animate-pulse">Analyzing your answers...</p>
+                     </div>
+                  ) : (
+                    <button 
+                      onClick={handleTaskSubmit}
+                      className="bg-slate-900 text-white font-bold py-4 px-12 rounded-full shadow-lg hover:bg-blue-600 hover:shadow-xl transition-all flex items-center gap-2 transform hover:-translate-y-1"
+                    >
+                      Submit My Responses
+                      <Send className="w-4 h-4" />
+                    </button>
+                  )}
 
                   <div className="flex flex-col items-center gap-2">
                      <button className="text-slate-400 font-bold py-2 px-6 rounded-full border-2 border-slate-200 cursor-not-allowed flex items-center gap-2" disabled>
@@ -1013,6 +1117,65 @@ const App: React.FC = () => {
       </div>
     );
   };
+
+  const renderFeedbackSection = () => (
+    <div className="max-w-3xl mx-auto mt-16 mb-8 fade-in">
+      {feedbackSubmitted ? (
+        <div className="bg-green-50 rounded-2xl p-8 text-center border border-green-100 shadow-sm animate-in zoom-in duration-300">
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle2 className="w-8 h-8 text-green-600" />
+          </div>
+          <h3 className="text-2xl font-bold text-slate-800 mb-2">Thank You!</h3>
+          <p className="text-slate-600">Your feedback helps us improve Pathio for everyone.</p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-3xl shadow-lg border border-slate-100 p-8 text-center relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-50 rounded-full blur-2xl opacity-50 -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+          
+          <div className="relative z-10">
+            <div className="inline-flex items-center justify-center p-3 bg-yellow-50 rounded-full mb-4 text-yellow-600">
+              <MessageSquare className="w-6 h-6" />
+            </div>
+            <h3 className="text-2xl font-bold text-slate-900 mb-2">Rate Your Experience</h3>
+            <p className="text-slate-500 mb-6">How helpful was this career discovery session?</p>
+            
+            <div className="flex justify-center gap-3 mb-6">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  onClick={() => setFeedbackRating(star)}
+                  className="transition-transform hover:scale-110 focus:outline-none group"
+                >
+                  <Star 
+                    className={`w-10 h-10 ${star <= feedbackRating ? 'fill-yellow-400 text-yellow-400' : 'text-slate-200 group-hover:text-yellow-200'} transition-colors`} 
+                  />
+                </button>
+              ))}
+            </div>
+
+            <textarea
+              className="w-full max-w-lg mx-auto p-4 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-50 transition-all outline-none resize-none text-slate-700 placeholder:text-slate-400 mb-6"
+              rows={3}
+              placeholder="Any suggestions or thoughts? (Optional)"
+              value={feedbackText}
+              onChange={(e) => setFeedbackText(e.target.value)}
+            />
+
+            <button
+              onClick={() => setFeedbackSubmitted(true)}
+              disabled={feedbackRating === 0}
+              className={`px-8 py-3 rounded-full font-bold text-white transition-all shadow-lg flex items-center gap-2 mx-auto
+                ${feedbackRating > 0 ? 'bg-slate-900 hover:bg-blue-600 hover:-translate-y-1' : 'bg-slate-300 cursor-not-allowed'}
+              `}
+            >
+              Submit Feedback
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 
   const renderProfessionSelection = () => (
     <div className="max-w-7xl mx-auto px-4 md:px-6 py-12 fade-in">
@@ -1141,6 +1304,8 @@ const App: React.FC = () => {
           );
         })}
       </div>
+
+      {renderFeedbackSection()}
 
       {renderResponseHistory()}
       

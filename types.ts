@@ -1,3 +1,4 @@
+
 export enum AppStep {
   HOME,
   ABOUT,
@@ -71,6 +72,7 @@ export interface UserDetails {
 export interface TaskResponse {
   text: string;
   fileName?: string;
+  feedback?: string; // AI generated feedback
 }
 
 export interface QuizState {
